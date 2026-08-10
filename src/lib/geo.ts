@@ -15,10 +15,19 @@ export const LOCATION_COORDS: Record<string, LngLat> = {
   "Security Office": { lng: -0.1869, lat: 5.656 },
   "Night Ward Lodge": { lng: -0.19, lat: 5.654 },
   JQB: { lng: -0.188, lat: 5.6495 },
+  "JQB (Dept. of CS)": { lng: -0.188, lat: 5.6495 },
   "Dept. of Physics": { lng: -0.193, lat: 5.652 },
   "Bush Canteen": { lng: -0.1885, lat: 5.6535 },
   "N-Block": { lng: -0.1955, lat: 5.65 },
+  "N Block": { lng: -0.1955, lat: 5.65 },
   "Dept. of Computer Eng.": { lng: -0.195, lat: 5.6555 },
+  "Great Hall": { lng: -0.1893, lat: 5.6502 },
+  "Main Gate": { lng: -0.188, lat: 5.656 },
+  "Legon Hall": { lng: -0.1862, lat: 5.6492 },
+  "Akuafo Hall": { lng: -0.191, lat: 5.648 },
+  "Pentagon Hall": { lng: -0.19, lat: 5.653 },
+  "Science Block": { lng: -0.1855, lat: 5.654 },
+  "Athletic Oval": { lng: -0.191, lat: 5.6515 },
 };
 
 export function coordsForLocation(name?: string): LngLat {

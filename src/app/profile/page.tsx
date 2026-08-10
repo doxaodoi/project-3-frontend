@@ -6,12 +6,11 @@ import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
 import { useAuth } from "@/lib/auth-context";
 import { auth as authApi } from "@/lib/api";
-import { cn } from "@/lib/cn";
+
 
 export default function ProfilePage() {
   const { user, logout, refresh } = useAuth();
   const [name, setName] = useState(user?.fullName ?? "");
-  const [alerts, setAlerts] = useState(true);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -74,38 +73,6 @@ export default function ProfilePage() {
                 </div>
               </div>
             </div>
-
-            {/* Alerts toggle */}
-            <button
-              type="button"
-              onClick={() => {
-                setAlerts((a) => !a);
-                setSaved(false);
-              }}
-              className="mt-1 flex items-center justify-between rounded-[9px] bg-panel px-4 py-3.5 text-left"
-            >
-              <span>
-                <span className="block text-[13.5px] font-semibold text-ink">
-                  Match &amp; claim email alerts
-                </span>
-                <span className="block text-xs text-ink3">
-                  Get an email when a match is found
-                </span>
-              </span>
-              <span
-                className={cn(
-                  "relative h-[23px] w-10 flex-none rounded-full transition-colors",
-                  alerts ? "bg-rust" : "bg-line",
-                )}
-              >
-                <span
-                  className={cn(
-                    "absolute top-[3px] h-[17px] w-[17px] rounded-full bg-white transition-all",
-                    alerts ? "right-[3px]" : "left-[3px]",
-                  )}
-                />
-              </span>
-            </button>
 
             <Button
               size="lg"

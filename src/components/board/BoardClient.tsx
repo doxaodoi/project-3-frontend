@@ -9,7 +9,7 @@ import { Search, Grid, MapPin, Sparkle } from "@/components/ui/Icon";
 import { ai as aiApi } from "@/lib/api";
 import { cn } from "@/lib/cn";
 
-type TypeFilter = "ALL" | ItemType;
+type TypeFilter = "ALL" | ItemType | "RESOLVED";
 type Sort = "newest" | "oldest";
 type View = "list" | "map";
 
@@ -105,7 +105,10 @@ export function BoardClient({ items }: { items: Item[] }) {
     const q = textFilter.trim().toLowerCase();
     const col = colorFilter.trim().toLowerCase();
     let result = items.filter((item) => {
-      if (type !== "ALL" && item.type !== type) return false;
+      // Hide resolved items unless the "Resolved" filter is active
+      if (type !== "RESOLVED" && item.status === "RESOLVED") return false;
+      if (type === "RESOLVED" && item.status !== "RESOLVED") return false;
+      if (type !== "ALL" && type !== "RESOLVED" && item.type !== type) return false;
       if (category && item.category !== category) return false;
       if (col && item.color && !item.color.toLowerCase().includes(col)) return false;
       if (q) {
@@ -181,7 +184,7 @@ export function BoardClient({ items }: { items: Item[] }) {
         </div>
 
         <div className="flex overflow-hidden rounded-[9px] border border-line bg-card text-[13px] font-semibold">
-          {(["ALL", "LOST", "FOUND"] as TypeFilter[]).map((t) => (
+          {(["ALL", "LOST", "FOUND", "RESOLVED"] as TypeFilter[]).map((t) => (
             <button
               key={t}
               onClick={() => setType(t)}
@@ -190,7 +193,7 @@ export function BoardClient({ items }: { items: Item[] }) {
                 type === t ? "bg-ink text-paper" : "text-ink2 hover:bg-panel",
               )}
             >
-              {t === "ALL" ? "All" : t === "LOST" ? "Lost" : "Found"}
+              {t === "ALL" ? "All" : t === "LOST" ? "Lost" : t === "FOUND" ? "Found" : "Resolved"}
             </button>
           ))}
         </div>

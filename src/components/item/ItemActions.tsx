@@ -17,6 +17,33 @@ export function ItemActions({ item }: { item: Item }) {
   const isFound = item.type === "FOUND";
   const itemId = Number(item.id);
 
+  // Different copy for "This is mine" (FOUND items) vs "I found this" (LOST items)
+  const modal = isFound
+    ? {
+        heading: "Claim this item",
+        description:
+          "Tell the finder why this is yours. They will review your claim before contact opens — this keeps everyone safe.",
+        label: "Your justification",
+        placeholder:
+          "Describe details only the owner would know (e.g. scratches, stickers, contents, lock-screen wallpaper)...",
+        hint: "Mentioning details not shown in photos makes your claim stronger.",
+        successHeading: "Claim submitted",
+        successBody:
+          "The finder will review your claim. If it checks out, a private message thread opens — we will notify you.",
+      }
+    : {
+        heading: "Report a sighting",
+        description:
+          "Let the owner know you have seen or found their item. They will verify and reach out through a private message.",
+        label: "What you found",
+        placeholder:
+          "Where exactly did you see or find this item? Describe it briefly so the owner can verify...",
+        hint: "Include the location and condition so the owner can confirm it is theirs.",
+        successHeading: "Report sent",
+        successBody:
+          "The owner will review your report. If it matches, a private message thread opens — we will notify you.",
+      };
+
   async function handleClaim() {
     if (!justification.trim()) return;
     setSubmitting(true);
@@ -25,7 +52,7 @@ export function ItemActions({ item }: { item: Item }) {
       await claimsApi.create(itemId, justification.trim());
       setSubmitted(true);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to submit claim.";
+      const msg = err instanceof Error ? err.message : "Failed to submit.";
       setError(msg);
     }
     setSubmitting(false);
@@ -70,7 +97,7 @@ export function ItemActions({ item }: { item: Item }) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-[1.5px]"
           role="dialog"
           aria-modal="true"
-          aria-label="Claim this item"
+          aria-label={modal.heading}
           onClick={() => setOpen(false)}
         >
           <div
@@ -80,11 +107,10 @@ export function ItemActions({ item }: { item: Item }) {
             {submitted ? (
               <div className="px-7 py-9 text-center">
                 <h3 className="mb-2 font-serif text-2xl font-semibold">
-                  Claim submitted
+                  {modal.successHeading}
                 </h3>
                 <p className="mx-auto max-w-[320px] text-[13.5px] leading-relaxed text-ink3">
-                  The finder will review your claim. If it checks out, a private
-                  message thread opens — we&apos;ll notify you.
+                  {modal.successBody}
                 </p>
                 <Button className="mt-6" onClick={() => setOpen(false)}>
                   Done
@@ -95,7 +121,7 @@ export function ItemActions({ item }: { item: Item }) {
                 <div className="px-7 pt-6">
                   <div className="flex items-start justify-between">
                     <h3 className="font-serif text-2xl font-semibold">
-                      Claim this item
+                      {modal.heading}
                     </h3>
                     <button
                       onClick={() => setOpen(false)}
@@ -106,8 +132,7 @@ export function ItemActions({ item }: { item: Item }) {
                     </button>
                   </div>
                   <p className="mt-2 text-[13.5px] leading-snug text-ink3">
-                    Tell the finder why this is yours. They&apos;ll review before
-                    contact opens — this keeps everyone safe.
+                    {modal.description}
                   </p>
                 </div>
 
@@ -116,19 +141,18 @@ export function ItemActions({ item }: { item: Item }) {
                     htmlFor="justification"
                     className="mb-[7px] block text-[12.5px] font-semibold text-ink2"
                   >
-                    Your justification
+                    {modal.label}
                   </label>
                   <textarea
                     id="justification"
                     value={justification}
                     onChange={(e) => setJustification(e.target.value)}
                     rows={4}
-                    placeholder="Describe details only the owner would know..."
+                    placeholder={modal.placeholder}
                     className="min-h-[88px] w-full resize-y rounded-[9px] border border-line bg-card px-3.5 py-[13px] text-sm leading-snug text-ink focus:border-rust focus:outline-none"
                   />
                   <div className="mt-2 text-[11.5px] text-faint">
-                    Mentioning details not shown in photos makes your claim
-                    stronger.
+                    {modal.hint}
                   </div>
                   {error && (
                     <div className="mt-2 text-[12px] text-rust">{error}</div>
@@ -141,7 +165,11 @@ export function ItemActions({ item }: { item: Item }) {
                     disabled={!justification.trim() || submitting}
                     onClick={handleClaim}
                   >
-                    {submitting ? "Submitting..." : "Submit claim"}
+                    {submitting
+                      ? "Submitting..."
+                      : isFound
+                        ? "Submit claim"
+                        : "Send report"}
                   </Button>
                   <Button variant="secondary" onClick={() => setOpen(false)}>
                     Cancel

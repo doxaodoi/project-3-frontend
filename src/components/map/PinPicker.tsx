@@ -20,6 +20,7 @@ export function PinPicker({
 }) {
   const { x, y } = project(value);
   const dragging = useRef(false);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   function coordFromPointer(e: React.PointerEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -78,7 +79,7 @@ export function PinPicker({
         Drop a pin — nearby matches are ranked by distance.
       </div>
 
-      <div className="h-[240px] overflow-hidden rounded-[11px] border border-[#cdc3ac]">
+      <div ref={mapRef} className="h-[240px] overflow-hidden rounded-[11px] border border-[#cdc3ac]">
         {MAPBOX_TOKEN ? (
           <MapErrorBoundary fallback={styled}>
             <LiveMapDynamic pick={{ value, onChange }} zoom={15} center={value} />
@@ -93,7 +94,13 @@ export function PinPicker({
           <MapPin size={15} className="text-rust" />
           <b>{place}</b>
         </span>
-        <span className="text-xs font-semibold text-rust">Adjust</span>
+        <button
+          type="button"
+          onClick={() => mapRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+          className="text-xs font-semibold text-rust hover:text-rustdark"
+        >
+          Adjust
+        </button>
       </div>
     </div>
   );

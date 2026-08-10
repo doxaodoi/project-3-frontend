@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { items as itemsApi, matches as matchesApi, type ItemDTO, type MatchDTO } from "@/lib/api";
+import { items as itemsApi, matches as matchesApi, claims as claimsApi, type ItemDTO, type MatchDTO, type ClaimDTO } from "@/lib/api";
 import { mapItem } from "@/lib/mappers";
 import { Gallery } from "@/components/item/Gallery";
 import { ItemActions } from "@/components/item/ItemActions";
@@ -17,6 +17,7 @@ export default function ItemDetailPage() {
   const [dto, setDto] = useState<ItemDTO | null>(null);
   const [item, setItem] = useState<Item | null>(null);
   const [matchList, setMatchList] = useState<MatchDTO[]>([]);
+  const [myClaims, setMyClaims] = useState<ClaimDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -28,10 +29,15 @@ export default function ItemDetailPage() {
       .then((d) => {
         setDto(d);
         setItem(mapItem(d));
-        // Also fetch matches
-        return matchesApi.forItem(id).catch(() => [] as MatchDTO[]);
+        return Promise.all([
+          matchesApi.forItem(id).catch(() => [] as MatchDTO[]),
+          claimsApi.mine().catch(() => [] as ClaimDTO[]),
+        ]);
       })
-      .then(setMatchList)
+      .then(([m, c]) => {
+        setMatchList(m);
+        setMyClaims(c.filter((cl) => cl.itemId === Number(id)));
+      })
       .catch(() => setError("Item not found."))
       .finally(() => setLoading(false));
   }, [id]);
@@ -220,8 +226,31 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {/* Actions — only show for items not owned by the current user */}
-          {!isOwner && item.status === "OPEN" && (
+          {/* Claim status — show if user has submitted a claim */}
+          {myClaims.length > 0 && (
+            <div className="rounded-xl border border-line2 bg-card p-4">
+              <div className="mb-1 text-[12.5px] font-semibold text-ink3">
+                Your claim
+              </div>
+              {myClaims.map((cl) => {
+                const statusMap: Record<string, { label: string; color: string }> = {
+                  PENDING: { label: "Pending review", color: "text-amber-600 bg-amber-50 border-amber-200" },
+                  APPROVED: { label: "Approved", color: "text-green-700 bg-green-50 border-green-200" },
+                  REJECTED: { label: "Rejected", color: "text-red-600 bg-red-50 border-red-200" },
+                  WITHDRAWN: { label: "Withdrawn", color: "text-ink3 bg-panel border-line" },
+                };
+                const s = statusMap[cl.status] ?? statusMap.PENDING;
+                return (
+                  <div key={cl.id} className={`mt-1 inline-block rounded-full border px-3 py-1 text-[12.5px] font-semibold ${s.color}`}>
+                    {s.label}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Actions — only show for items not owned by the current user and no existing claim */}
+          {!isOwner && item.status === "OPEN" && myClaims.length === 0 && (
             <ItemActions item={item} />
           )}
 

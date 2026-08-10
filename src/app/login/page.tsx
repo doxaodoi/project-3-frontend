@@ -30,12 +30,13 @@ export default function AuthPage() {
     try {
       if (isRegister) {
         const fullName = (fd.get("name") as string).trim();
+        const phone = (fd.get("phone") as string)?.trim() || undefined;
         if (!fullName) {
           setError("Full name is required.");
           setBusy(false);
           return;
         }
-        await register({ fullName, email, password });
+        await register({ fullName, email, phone, password });
       } else {
         await login(email, password);
       }
@@ -127,6 +128,15 @@ export default function AuthPage() {
               <div className="mb-[18px]">
                 <Label htmlFor="name">Full name</Label>
                 <Input id="name" name="name" placeholder="Ama Mensah" autoComplete="name" />
+              </div>
+            )}
+
+            {isRegister && (
+              <div className="mb-[18px]">
+                <Label htmlFor="phone" hint={<span className="text-xs text-muted">Optional</span>}>
+                  Phone number
+                </Label>
+                <Input id="phone" name="phone" type="tel" placeholder="0551234567" autoComplete="tel" />
               </div>
             )}
 

@@ -58,7 +58,7 @@ interface LiveMapProps {
 
 export default function LiveMap({
   className,
-  zoom = 14.4,
+  zoom = 15.2,
   center = CAMPUS_CENTER,
   points,
   pick,
