@@ -3,12 +3,11 @@
 import { useState } from "react";
 import type { Item } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
-import { Heart, Lock } from "@/components/ui/Icon";
+import { Lock } from "@/components/ui/Icon";
 import { claims as claimsApi } from "@/lib/api";
 
 export function ItemActions({ item }: { item: Item }) {
   const [open, setOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [justification, setJustification] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -60,10 +59,10 @@ export function ItemActions({ item }: { item: Item }) {
 
   return (
     <>
-      <div className="mb-4 flex gap-3">
+      <div className="mb-4">
         <Button
           size="lg"
-          className="flex-1"
+          className="w-full"
           onClick={() => {
             setSubmitted(false);
             setError("");
@@ -71,18 +70,6 @@ export function ItemActions({ item }: { item: Item }) {
           }}
         >
           {isFound ? "This is mine — claim it" : "I found this item"}
-        </Button>
-        <Button
-          variant="secondary"
-          size="lg"
-          onClick={() => setSaved((s) => !s)}
-          aria-pressed={saved}
-        >
-          <Heart
-            size={18}
-            className={saved ? "fill-rust text-rust" : ""}
-          />
-          {saved ? "Saved" : "Save"}
         </Button>
       </div>
 

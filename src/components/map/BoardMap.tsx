@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { Item } from "@/lib/types";
-import { MAPBOX_TOKEN, coordsForLocation, project } from "@/lib/geo";
+import { MAPBOX_TOKEN, coordsForLocation, project, type LngLat } from "@/lib/geo";
 import { StyledMap, StyledPin, MapLegend } from "./StyledMap";
 import { LiveMapDynamic, MapErrorBoundary } from "./liveMapDynamic";
 import type { MapPoint } from "./LiveMap";
@@ -22,11 +22,20 @@ function pinMeta(item: Item) {
     : { color: "#2f6d3a", glyph: "F" };
 }
 
+/** Use actual lat/lng from the item DTO if available, else fall back to location name lookup. */
+function itemCoords(it: Item): LngLat {
+  const dto = it._dto;
+  if (dto?.latitude != null && dto?.longitude != null) {
+    return { lat: dto.latitude, lng: dto.longitude };
+  }
+  return coordsForLocation(it.location);
+}
+
 export function BoardMap({ items }: { items: Item[] }) {
   const styled = (
     <StyledMap className="h-full w-full">
       {items.map((it) => {
-        const { x, y } = project(coordsForLocation(it.location));
+        const { x, y } = project(itemCoords(it));
         const { color, glyph } = pinMeta(it);
         return (
           <StyledPin
@@ -43,7 +52,7 @@ export function BoardMap({ items }: { items: Item[] }) {
   );
 
   const points: MapPoint[] = items.map((it) => {
-    const c = coordsForLocation(it.location);
+    const c = itemCoords(it);
     const { color, glyph } = pinMeta(it);
     return { id: it.id, lng: c.lng, lat: c.lat, color, glyph };
   });

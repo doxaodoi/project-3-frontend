@@ -8,9 +8,9 @@ import { Input, Label } from "@/components/ui/Field";
 import { Tag } from "@/components/ui/Tag";
 import { Sparkle } from "@/components/ui/Icon";
 import { PinPicker } from "@/components/map/PinPicker";
+import { LocationSearch } from "@/components/map/LocationSearch";
 import {
   CAMPUS_CENTER,
-  coordsForLocation,
   nearestLocation,
   type LngLat,
 } from "@/lib/geo";
@@ -19,9 +19,7 @@ import {
   items as itemsApi,
   ai as aiApi,
   categories as catApi,
-  locations as locApi,
   type CategoryDTO,
-  type LocationDTO,
 } from "@/lib/api";
 
 type Mode = "lost" | "found";
@@ -41,7 +39,6 @@ const emptyFields = {
   category: "",
   categoryId: null as number | null,
   heldAt: "",
-  locationId: null as number | null,
   location: "",
   date: "",
   color: "",
@@ -67,14 +64,12 @@ export function ReportForm() {
   const [posted, setPosted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [apiCategories, setApiCategories] = useState<CategoryDTO[]>([]);
-  const [apiLocations, setApiLocations] = useState<LocationDTO[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const isFound = mode === "found";
 
-  // Load categories and locations from API
+  // Load categories from API
   useEffect(() => {
     catApi.list().then(setApiCategories).catch(() => {});
-    locApi.list().then(setApiLocations).catch(() => {});
   }, []);
 
   function pickCoord(c: LngLat) {
@@ -137,17 +132,12 @@ export function ReportForm() {
     setSubmitting(true);
 
     try {
-      // Find location ID from name
-      const loc = apiLocations.find(
-        (l) => l.name.toLowerCase() === fields.location.toLowerCase(),
-      );
-
       await itemsApi.create({
         type: isFound ? "FOUND" : "LOST",
         title: fields.title,
         description: fields.description,
         categoryId: fields.categoryId,
-        locationId: loc?.id ?? null,
+        locationName: fields.location || null,
         heldAt: isFound ? fields.heldAt : null,
         latitude: coord.lat,
         longitude: coord.lng,
@@ -198,13 +188,6 @@ export function ReportForm() {
         { id: 8, name: "Documents", icon: "" },
         { id: 9, name: "Books", icon: "" },
         { id: 10, name: "Other", icon: "" },
-      ];
-
-  const locationOptions = apiLocations.length > 0
-    ? apiLocations
-    : [
-        { id: 1, name: "Balme Library", description: null, latitude: null, longitude: null },
-        { id: 2, name: "JQB", description: null, latitude: null, longitude: null },
       ];
 
   return (
@@ -399,48 +382,14 @@ export function ReportForm() {
             {isFound && (
               <div>
                 <Label htmlFor="heldAt">Currently held at</Label>
-                <select
+                <Input
                   id="heldAt"
                   value={fields.heldAt}
                   onChange={(e) => set("heldAt", e.target.value)}
-                  className={selectClass(!!fields.heldAt)}
-                >
-                  <option value="">Select...</option>
-                  {locationOptions.map((l) => (
-                    <option key={l.id} value={l.name}>
-                      {l.name}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="e.g. Balme Library Front Desk"
+                />
               </div>
             )}
-
-            <div>
-              <Label htmlFor="location">
-                {isFound ? "Location seen" : "Last seen"}
-              </Label>
-              <select
-                id="location"
-                value={fields.locationId ?? ""}
-                onChange={(e) => {
-                  const id = e.target.value ? Number(e.target.value) : null;
-                  const loc = locationOptions.find((l) => l.id === id);
-                  set("locationId", id);
-                  set("location", loc?.name ?? "");
-                  if (loc?.name) {
-                    setCoord(coordsForLocation(loc.name));
-                  }
-                }}
-                className={selectClass(!!fields.locationId)}
-              >
-                <option value="">Select...</option>
-                {locationOptions.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             <div>
               <Label htmlFor="date">
@@ -474,6 +423,17 @@ export function ReportForm() {
               />
             </div>
           </div>
+
+          {/* Location search — type to find a place via Mapbox geocoding */}
+          <LocationSearch
+            value={fields.location}
+            onSelect={(name, coords) => {
+              set("location", name);
+              setCoord(coords);
+            }}
+            label={isFound ? "Where did you find it?" : "Where did you last see it?"}
+            placeholder="Type a place name (e.g. Balme Library, JQB, Bush Canteen)"
+          />
 
           <PinPicker
             mode={mode}
