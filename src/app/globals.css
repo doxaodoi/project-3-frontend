@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+/* ============================================================
+   Reclaim — Editorial Notice-Board design system (direction 1a)
+   Warm paper, serif headlines, single rust accent.
+   ============================================================ */
+@theme {
+  /* surfaces */
+  --color-canvas: #e2ded6; /* page background */
+  --color-paper: #f6f2ea; /* cards / frames */
+  --color-panel: #f1ece1; /* subtle inset panels */
+  --color-card: #ffffff;
+
+  /* ink / text */
+  --color-ink: #221c15; /* headings, strong text */
+  --color-ink2: #5c5343; /* labels */
+  --color-ink3: #7a7061; /* secondary text */
+  --color-muted: #8a7f6d; /* captions */
+  --color-faint: #a89a84; /* faint mono labels */
+
+  /* rust accent */
+  --color-rust: #b5451f;
+  --color-rustdark: #8f3416;
+  --color-rusttint: #fbeee7; /* accent background */
+  --color-rustline: #f0d2c1; /* accent border */
+
+  /* found (green) */
+  --color-found: #2f6d3a;
+
+  /* hairlines */
+  --color-line: #ded5c5;
+  --color-line2: #e3dacb;
+}
+
+@theme inline {
+  --font-sans: var(--font-archivo);
+  --font-serif: var(--font-newsreader);
+  --font-mono: var(--font-plex-mono);
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Mono eyebrow / caption label used throughout the mockup */
+.eyebrow {
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ---- Styled fallback map (shown when no Mapbox token is set) ---- */
+.rmap {
+  position: relative;
+  background: #e7e0d0;
+  overflow: hidden;
+}
+.rmap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(#d8cfbc 2px, transparent 2px) 0 0 / 100% 46px,
+    linear-gradient(90deg, #d8cfbc 2px, transparent 2px) 0 0 / 62px 100%;
+}
+.rmap-block {
+  position: absolute;
+  background: #dcd3bf;
+  border: 1px solid #cdc3ac;
+  border-radius: 3px;
+}
+.rmap-road {
+  position: absolute;
+  background: #f2ecdd;
+}
+.rmap-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  rotate: -45deg;
+  transform-origin: bottom;
+  border-radius: 50% 50% 50% 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+}
+.rmap-pin > i {
+  rotate: 45deg;
+  color: #fff;
+  font-style: normal;
+  font-weight: 700;
+  display: flex;
+  line-height: 1;
+}
+
+/* Mapbox GL popups/controls tuned to the editorial palette */
+.mapboxgl-map {
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
