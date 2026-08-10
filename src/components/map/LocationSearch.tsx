@@ -14,7 +14,8 @@ interface Suggestion {
 /**
  * Mapbox-powered location search input.
  * Types a place name → geocodes via Mapbox → returns exact coordinates.
- * Biased toward UG Legon campus.
+ * Biased toward UG Legon campus via proximity.
+ * Falls back to plain text input when no Mapbox token is set.
  */
 export function LocationSearch({
   value,
@@ -51,35 +52,41 @@ export function LocationSearch({
   }, []);
 
   const geocode = useCallback(async (q: string) => {
-    if (!MAPBOX_TOKEN || q.length < 2) {
+    if (!MAPBOX_TOKEN) return; // no token — plain text only
+    if (q.length < 2) {
       setSuggestions([]);
       return;
     }
 
     setLoading(true);
     try {
-      // Bias toward UG campus with proximity + bbox
+      // Bias results toward UG Legon campus via proximity only (no bbox —
+      // bbox filters out POIs that Mapbox hasn't indexed at that exact area)
       const params = new URLSearchParams({
         access_token: MAPBOX_TOKEN,
         proximity: `${CAMPUS_CENTER.lng},${CAMPUS_CENTER.lat}`,
-        bbox: "-0.21,5.63,-0.17,5.67", // campus bounding box
-        limit: "5",
-        types: "poi,address,place,locality,neighborhood",
+        country: "GH",
+        limit: "6",
         language: "en",
       });
 
       const res = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?${params}`,
       );
+
+      if (!res.ok) throw new Error("Geocoding request failed");
+
       const data = await res.json();
-      setSuggestions(
-        (data.features ?? []).map((f: Record<string, unknown>) => ({
+      const features: Suggestion[] = (data.features ?? []).map(
+        (f: Record<string, unknown>) => ({
           id: f.id as string,
           place_name: f.place_name as string,
           center: f.center as [number, number],
-        })),
+        }),
       );
-      setOpen(true);
+
+      setSuggestions(features);
+      setOpen(features.length > 0);
     } catch {
       setSuggestions([]);
     }
@@ -89,11 +96,13 @@ export function LocationSearch({
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;
     setQuery(v);
+    // Commit the typed value immediately as plain text (no coords)
+    onSelect(v, CAMPUS_CENTER);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (v.trim().length >= 2) {
-      debounceRef.current = setTimeout(() => geocode(v.trim()), 300);
+      debounceRef.current = setTimeout(() => geocode(v.trim()), 350);
     } else {
       setSuggestions([]);
       setOpen(false);
@@ -101,7 +110,7 @@ export function LocationSearch({
   }
 
   function handleSelect(s: Suggestion) {
-    // Use the short name (first part before the comma)
+    // Use the short name (first part before the comma) as the stored location name
     const shortName = s.place_name.split(",")[0].trim();
     setQuery(shortName);
     setOpen(false);
@@ -125,7 +134,8 @@ export function LocationSearch({
           onFocus={() => {
             if (suggestions.length > 0) setOpen(true);
           }}
-          placeholder={placeholder ?? "Search for a location..."}
+          placeholder={placeholder ?? "Type a place name..."}
+          autoComplete="off"
           className="w-full rounded-[9px] border border-line bg-card py-3 pl-9 pr-3.5 text-sm text-ink placeholder:text-muted focus:border-rust focus:outline-none"
         />
         {loading && (
@@ -150,6 +160,12 @@ export function LocationSearch({
             </li>
           ))}
         </ul>
+      )}
+
+      {!MAPBOX_TOKEN && (
+        <p className="mt-1 text-[11.5px] text-ink3">
+          Type the location name — pin it on the map below for precision.
+        </p>
       )}
     </div>
   );
