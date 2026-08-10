@@ -334,6 +334,15 @@ export const ai = {
   },
 
   status: () => request<{ available: boolean }>("/api/ai/status"),
+
+  parseSearch: (query: string) =>
+    request<{ filters: Record<string, string>; aiParsed: boolean }>(
+      "/api/ai/parse-search",
+      {
+        method: "POST",
+        body: JSON.stringify({ query }),
+      },
+    ),
 };
 
 /* ---------- Reference data ---------- */
