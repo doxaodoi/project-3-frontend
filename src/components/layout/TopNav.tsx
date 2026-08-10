@@ -50,6 +50,19 @@ export function TopNav() {
               </Link>
             );
           })}
+          {user?.role === "ADMIN" && (
+            <Link
+              href="/admin"
+              className={cn(
+                "pb-1 transition-colors hover:text-ink",
+                pathname.startsWith("/admin")
+                  ? "border-b-2 border-rust text-ink"
+                  : "border-b-2 border-transparent",
+              )}
+            >
+              Admin
+            </Link>
+          )}
         </nav>
 
         <div className="flex items-center gap-4">
