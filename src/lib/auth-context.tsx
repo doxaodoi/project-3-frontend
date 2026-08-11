@@ -78,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (email: string, password: string) => {
       const res = await authApi.login(email, password);
       handleAuth(res);
-      router.push("/dashboard");
+      router.push("/");
     },
     [handleAuth, router],
   );
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }) => {
       const res = await authApi.register(data);
       handleAuth(res);
-      router.push("/dashboard");
+      router.push("/");
     },
     [handleAuth, router],
   );

@@ -3,7 +3,14 @@
  * Handles JWT token storage and auto-attaches Authorization headers.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+
+/** Turn a relative backend path (e.g. /uploads/abc.jpg) into a full URL. */
+export function assetUrl(path: string | undefined | null): string | undefined {
+  if (!path) return undefined;
+  if (path.startsWith("http")) return path; // already absolute
+  return `${API_BASE}${path}`;
+}
 
 /* ---------- Token helpers ---------- */
 
@@ -343,6 +350,20 @@ export const ai = {
         body: JSON.stringify({ query }),
       },
     ),
+};
+
+/* ---------- File uploads ---------- */
+
+export const uploads = {
+  /** Upload a photo file and return the URL path. */
+  photo: (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return request<{ url: string }>("/api/uploads", {
+      method: "POST",
+      body: fd,
+    });
+  },
 };
 
 /* ---------- Reference data ---------- */

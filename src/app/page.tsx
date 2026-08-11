@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { BoardClient } from "@/components/board/BoardClient";
-import { items as itemsApi, type ItemDTO } from "@/lib/api";
+import { items as itemsApi } from "@/lib/api";
 import { mapItem } from "@/lib/mappers";
 import type { Item } from "@/lib/types";
 
@@ -22,7 +22,6 @@ export default function Home() {
         setTotal(page.totalElements);
       })
       .catch(() => {
-        // API down — show empty state
         setList([]);
       })
       .finally(() => setLoading(false));

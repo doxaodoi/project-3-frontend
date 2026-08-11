@@ -5,6 +5,7 @@ import type { Item } from "@/lib/types";
 import { TypeBadge } from "@/components/ui/Badge";
 import { gradientStyle } from "@/components/board/ItemCard";
 import { cn } from "@/lib/cn";
+import { assetUrl } from "@/lib/api";
 
 interface Props {
   item: Item;
@@ -14,7 +15,7 @@ interface Props {
 
 export function Gallery({ item, photoUrl }: Props) {
   const photos = item._dto?.photos ?? [];
-  const urls = photos.map((p) => p.url).filter(Boolean);
+  const urls = photos.map((p) => assetUrl(p.url)).filter(Boolean) as string[];
   const [active, setActive] = useState(0);
 
   // If we have real photos, show them; otherwise show gradient fallback

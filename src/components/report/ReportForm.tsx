@@ -19,6 +19,7 @@ import {
   items as itemsApi,
   ai as aiApi,
   categories as catApi,
+  uploads as uploadsApi,
   type CategoryDTO,
 } from "@/lib/api";
 
@@ -132,6 +133,13 @@ export function ReportForm() {
     setSubmitting(true);
 
     try {
+      // Upload photo first if one was selected
+      const photoUrls: string[] = [];
+      if (photo?.kind === "upload") {
+        const { url } = await uploadsApi.photo(photo.file);
+        photoUrls.push(url);
+      }
+
       await itemsApi.create({
         type: isFound ? "FOUND" : "LOST",
         title: fields.title,
@@ -145,7 +153,7 @@ export function ReportForm() {
         color: fields.color || null,
         brand: fields.brand || null,
         tags: tags,
-        photoUrls: photo?.kind === "upload" ? [] : [],
+        photoUrls,
       });
 
       setPosted(true);

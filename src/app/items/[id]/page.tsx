@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { items as itemsApi, matches as matchesApi, claims as claimsApi, type ItemDTO, type MatchDTO, type ClaimDTO } from "@/lib/api";
+import { items as itemsApi, matches as matchesApi, claims as claimsApi, assetUrl, type ItemDTO, type MatchDTO, type ClaimDTO } from "@/lib/api";
 import { mapItem } from "@/lib/mappers";
 import { Gallery } from "@/components/item/Gallery";
 import { ItemActions } from "@/components/item/ItemActions";
+import { AppShell } from "@/components/layout/AppShell";
 import { Sparkle, MapPin, ChatBubble } from "@/components/ui/Icon";
 import { useAuth } from "@/lib/auth-context";
 import type { Item } from "@/lib/types";
@@ -44,34 +45,37 @@ export default function ItemDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[980px] px-4 py-20 text-center text-ink3">
-        Loading...
-      </div>
+      <AppShell>
+        <div className="py-20 text-center text-ink3">Loading...</div>
+      </AppShell>
     );
   }
 
   if (error || !item || !dto) {
     return (
-      <div className="mx-auto max-w-[980px] px-4 py-20 text-center">
-        <h1 className="font-serif text-2xl font-semibold">Item not found</h1>
-        <p className="mt-2 text-sm text-ink3">
-          This item may have been removed or resolved.
-        </p>
-        <Link
-          href="/"
-          className="mt-4 inline-block text-sm font-semibold text-rust hover:text-rustdark"
-        >
-          Back to board
-        </Link>
-      </div>
+      <AppShell>
+        <div className="py-20 text-center">
+          <h1 className="font-serif text-2xl font-semibold">Item not found</h1>
+          <p className="mt-2 text-sm text-ink3">
+            This item may have been removed or resolved.
+          </p>
+          <Link
+            href="/"
+            className="mt-4 inline-block text-sm font-semibold text-rust hover:text-rustdark"
+          >
+            Back to board
+          </Link>
+        </div>
+      </AppShell>
     );
   }
 
   const isOwner = user && dto.reporter?.id === user.id;
-  const photoUrl = dto.photos?.[0]?.url;
+  const photoUrl = assetUrl(dto.photos?.[0]?.url);
 
   return (
-    <div className="mx-auto max-w-[980px] px-4 py-6 sm:px-6 lg:px-8">
+    <AppShell>
+    <div className="mx-auto max-w-[980px] py-6">
       {/* Breadcrumb */}
       <nav className="mb-5 text-[12.5px] text-ink3">
         <Link href="/" className="hover:text-ink">
@@ -249,8 +253,8 @@ export default function ItemDetailPage() {
             </div>
           )}
 
-          {/* Actions — only show for items not owned by the current user and no existing claim */}
-          {!isOwner && item.status === "OPEN" && myClaims.length === 0 && (
+          {/* Actions — show for items not owned by the current user, still claimable, and no existing claim */}
+          {!isOwner && (item.status === "OPEN" || item.status === "MATCHED") && myClaims.length === 0 && (
             <ItemActions item={item} />
           )}
 
@@ -268,5 +272,6 @@ export default function ItemDetailPage() {
         </div>
       </div>
     </div>
+    </AppShell>
   );
 }

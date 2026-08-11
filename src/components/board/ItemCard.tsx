@@ -2,13 +2,14 @@ import Link from "next/link";
 import type { Item } from "@/lib/types";
 import { TypeBadge } from "@/components/ui/Badge";
 import { Sparkle } from "@/components/ui/Icon";
+import { assetUrl } from "@/lib/api";
 
 export function gradientStyle([from, to]: [string, string]) {
   return { backgroundImage: `linear-gradient(135deg, ${from}, ${to})` };
 }
 
 export function ItemCard({ item }: { item: Item }) {
-  const photoUrl = item._dto?.photos?.[0]?.url;
+  const photoUrl = assetUrl(item._dto?.photos?.[0]?.url);
 
   return (
     <Link

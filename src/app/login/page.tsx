@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { LogoMark } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { Input, Label } from "@/components/ui/Field";
@@ -15,8 +16,19 @@ export default function AuthPage() {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const { login, register } = useAuth();
+  const { user, loading: authLoading, login, register } = useAuth();
+  const router = useRouter();
   const isRegister = mode === "register";
+
+  // If already logged in, redirect to browse
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace("/");
+    }
+  }, [authLoading, user, router]);
+
+  // Show nothing while checking auth (loading.tsx handles the skeleton)
+  if (authLoading || user) return null;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
