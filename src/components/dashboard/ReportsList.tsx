@@ -7,6 +7,7 @@ import { items as itemsApi } from "@/lib/api";
 import { mapItem } from "@/lib/mappers";
 import { StatusChip, statusTone } from "@/components/ui/Badge";
 import { gradientStyle } from "@/components/board/ItemCard";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface Props {
   /** Pass items directly (dashboard already fetches them). */
@@ -15,6 +16,7 @@ interface Props {
 
 export function ReportsList({ items: propItems }: Props) {
   const [reports, setReports] = useState<Item[]>(propItems ?? []);
+  const [loading, setLoading] = useState(!propItems);
 
   // If no items passed as props, fetch from API
   useEffect(() => {
@@ -22,8 +24,25 @@ export function ReportsList({ items: propItems }: Props) {
     itemsApi
       .mine()
       .then((list) => setReports(list.map(mapItem)))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [propItems]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-2 px-[18px] py-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3.5 py-2">
+            <Skeleton className="h-11 w-11 flex-none rounded-lg" />
+            <div className="flex-1">
+              <Skeleton className="mb-1.5 h-4 w-1/2" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   if (reports.length === 0) {
     return (

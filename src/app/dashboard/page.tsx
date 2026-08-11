@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { StatCard } from "@/components/ui/StatCard";
 import { ReportsList } from "@/components/dashboard/ReportsList";
-import { Sparkle, Check, ChatBubble } from "@/components/ui/Icon";
+import { Sparkle, Check, ChatBubble, Grid } from "@/components/ui/Icon";
 import { useAuth } from "@/lib/auth-context";
 import {
   items as itemsApi,
@@ -119,6 +119,15 @@ export default function DashboardPage() {
                 <Check size={15} className="flex-none text-rust" />
                 <span>Check notifications</span>
               </Link>
+              {user?.role === "ADMIN" && (
+                <Link
+                  href="/admin"
+                  className="flex items-center gap-2.5 border-t border-line pt-3 font-semibold text-ink hover:text-rust"
+                >
+                  <Grid size={15} className="flex-none text-rust" />
+                  <span>Admin dashboard</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>

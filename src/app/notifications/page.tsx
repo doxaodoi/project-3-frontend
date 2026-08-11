@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { NotifIcon } from "@/components/ui/NotifIcon";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import {
   notifications as notifApi,
   type NotificationDTO,
@@ -31,6 +33,7 @@ function timeLabel(dateStr: string) {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [items, setItems] = useState<NotificationDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -48,10 +51,23 @@ export default function NotificationsPage() {
     });
   };
 
+  const openNotif = (n: NotificationDTO) => {
+    // Mark read (best-effort) then navigate to the linked resource
+    if (!n.isRead) {
+      notifApi.markRead(n.id).catch(() => {});
+      setItems((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, isRead: true } : x)),
+      );
+    }
+    if (n.link) router.push(n.link);
+  };
+
   if (loading)
     return (
       <AppShell>
-        <div className="py-20 text-center text-ink3">Loading...</div>
+        <div className="mx-auto max-w-[600px] pt-6">
+          <ListSkeleton rows={5} />
+        </div>
       </AppShell>
     );
 
@@ -75,11 +91,15 @@ export default function NotificationsPage() {
         ) : (
           <div className="flex flex-col gap-1 pb-16">
             {items.map((n) => (
-              <div
+              <button
                 key={n.id}
+                type="button"
+                onClick={() => openNotif(n)}
+                disabled={!n.link}
                 className={cn(
-                  "flex gap-3 rounded-[10px] p-3.5 transition-colors",
+                  "flex gap-3 rounded-[10px] p-3.5 text-left transition-colors",
                   !n.isRead ? "bg-rusttint" : "opacity-70",
+                  n.link ? "cursor-pointer hover:bg-rusttint/70" : "cursor-default",
                 )}
               >
                 <NotifIcon kind={notifKind(n.type)} />
@@ -90,12 +110,15 @@ export default function NotificationsPage() {
                   </div>
                   <div className="mt-1 font-mono text-[11.5px] text-faint">
                     {timeLabel(n.createdAt)}
+                    {n.link && (
+                      <span className="ml-2 text-rust">· Tap to view</span>
+                    )}
                   </div>
                 </div>
                 {!n.isRead && (
                   <span className="mt-1.5 h-2 w-2 flex-none rounded-full bg-rust" />
                 )}
-              </div>
+              </button>
             ))}
           </div>
         )}

@@ -352,17 +352,37 @@ export const ai = {
     ),
 };
 
-/* ---------- File uploads ---------- */
+/* ---------- File uploads (Cloudinary) ---------- */
+
+const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const CLOUDINARY_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+/** Whether Cloudinary is configured (both env vars present). */
+export const cloudinaryReady = Boolean(CLOUDINARY_CLOUD && CLOUDINARY_PRESET);
 
 export const uploads = {
-  /** Upload a photo file and return the URL path. */
-  photo: (file: File) => {
+  /**
+   * Upload a photo directly to Cloudinary (unsigned) and return its secure URL.
+   * Works on any host — Render's free tier has no persistent disk, so we don't
+   * store files on the backend. Requires NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and
+   * NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET (an unsigned preset) to be set.
+   */
+  photo: async (file: File): Promise<{ url: string }> => {
+    if (!CLOUDINARY_CLOUD || !CLOUDINARY_PRESET) {
+      throw new ApiError(0, "Cloudinary is not configured");
+    }
     const fd = new FormData();
     fd.append("file", file);
-    return request<{ url: string }>("/api/uploads", {
-      method: "POST",
-      body: fd,
-    });
+    fd.append("upload_preset", CLOUDINARY_PRESET);
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+      { method: "POST", body: fd },
+    );
+    if (!res.ok) {
+      throw new ApiError(res.status, "Photo upload failed");
+    }
+    const data = await res.json();
+    return { url: data.secure_url as string };
   },
 };
 
@@ -402,12 +422,23 @@ export interface AdminStats {
   resolutionRate: number;
   byCategory: Record<string, number>;
   byLocation: Record<string, number>;
+  byLocationLost: Record<string, number>;
+  byLocationFound: Record<string, number>;
 }
 
 export const admin = {
   stats: () => request<AdminStats>("/api/admin/stats"),
-  items: (page = 0, size = 20) =>
+  items: (page = 0, size = 50) =>
     request<PageDTO<ItemDTO>>(`/api/admin/items?page=${page}&size=${size}`),
+  moderateItem: (id: number, status: string) =>
+    request<ItemDTO>(`/api/admin/items/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
+    }),
+  removeItem: (id: number) =>
+    request<void>(`/api/admin/items/${id}`, { method: "DELETE" }),
   users: () => request<UserDTO[]>("/api/admin/users"),
+  deleteUser: (id: number) =>
+    request<void>(`/api/admin/users/${id}`, { method: "DELETE" }),
   claims: () => request<ClaimDTO[]>("/api/admin/claims"),
 };

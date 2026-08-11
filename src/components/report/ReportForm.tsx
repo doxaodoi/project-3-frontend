@@ -64,6 +64,7 @@ export function ReportForm() {
   const [coord, setCoord] = useState<LngLat>(CAMPUS_CENTER);
   const [posted, setPosted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [apiCategories, setApiCategories] = useState<CategoryDTO[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const isFound = mode === "found";
@@ -131,13 +132,22 @@ export function ReportForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
+    setSubmitError("");
 
     try {
-      // Upload photo first if one was selected
+      // Upload photo to Cloudinary first if one was selected
       const photoUrls: string[] = [];
       if (photo?.kind === "upload") {
-        const { url } = await uploadsApi.photo(photo.file);
-        photoUrls.push(url);
+        try {
+          const { url } = await uploadsApi.photo(photo.file);
+          photoUrls.push(url);
+        } catch {
+          setSubmitError(
+            "Couldn't upload the photo. Check your connection and try again, or post without a photo.",
+          );
+          setSubmitting(false);
+          return;
+        }
       }
 
       await itemsApi.create({
@@ -157,8 +167,9 @@ export function ReportForm() {
       });
 
       setPosted(true);
-    } catch {
-      // Show error inline
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to post. Please try again.";
+      setSubmitError(msg);
       setSubmitting(false);
     }
   }
@@ -449,6 +460,12 @@ export function ReportForm() {
             onChange={pickCoord}
             place={fields.location || nearestLocation(coord)}
           />
+
+          {submitError && (
+            <div className="rounded-lg border border-[#e5c1b0] bg-[#fdf0ea] px-4 py-3 text-sm text-rust">
+              {submitError}
+            </div>
+          )}
 
           <div className="mt-1.5 flex flex-wrap gap-3">
             <Button type="submit" size="lg" disabled={submitting}>

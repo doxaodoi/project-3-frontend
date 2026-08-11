@@ -7,7 +7,9 @@ import { items as itemsApi, matches as matchesApi, claims as claimsApi, assetUrl
 import { mapItem } from "@/lib/mappers";
 import { Gallery } from "@/components/item/Gallery";
 import { ItemActions } from "@/components/item/ItemActions";
+import { ClaimsReview } from "@/components/item/ClaimsReview";
 import { AppShell } from "@/components/layout/AppShell";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Sparkle, MapPin, ChatBubble } from "@/components/ui/Icon";
 import { useAuth } from "@/lib/auth-context";
 import type { Item } from "@/lib/types";
@@ -46,7 +48,20 @@ export default function ItemDetailPage() {
   if (loading) {
     return (
       <AppShell>
-        <div className="py-20 text-center text-ink3">Loading...</div>
+        <div className="mx-auto grid max-w-[980px] grid-cols-1 gap-8 py-6 lg:grid-cols-[1fr_380px]">
+          <div>
+            <Skeleton className="h-[280px] w-full rounded-xl sm:h-[360px]" />
+            <Skeleton className="mt-6 h-4 w-24" />
+            <Skeleton className="mt-3 h-4 w-full" />
+            <Skeleton className="mt-2 h-4 w-2/3" />
+          </div>
+          <div className="flex flex-col gap-5">
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-24 w-full rounded-xl" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+            <Skeleton className="h-11 w-full rounded-xl" />
+          </div>
+        </div>
       </AppShell>
     );
   }
@@ -259,15 +274,18 @@ export default function ItemDetailPage() {
           )}
 
           {isOwner && (
-            <div className="rounded-xl border border-line2 bg-panel p-4 text-center text-[13px] text-ink3">
-              This is your report.{" "}
-              <Link
-                href="/my-reports"
-                className="font-semibold text-rust hover:text-rustdark"
-              >
-                Manage it
-              </Link>
-            </div>
+            <>
+              <div className="rounded-xl border border-line2 bg-panel p-4 text-center text-[13px] text-ink3">
+                This is your report.{" "}
+                <Link
+                  href="/my-reports"
+                  className="font-semibold text-rust hover:text-rustdark"
+                >
+                  Manage it
+                </Link>
+              </div>
+              <ClaimsReview itemId={Number(id)} />
+            </>
           )}
         </div>
       </div>

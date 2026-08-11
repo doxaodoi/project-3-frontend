@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Search, Lock, Send } from "@/components/ui/Icon";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 
 const COLORS = ["#c8703f", "#5a7baa", "#6b8f5e", "#8a72a8", "#b5451f"];
@@ -68,7 +69,11 @@ export function Messaging() {
   }
 
   if (loadingList) {
-    return <div className="py-20 text-center text-ink3">Loading messages...</div>;
+    return (
+      <div className="mx-auto max-w-[600px] pt-6">
+        <ListSkeleton rows={5} />
+      </div>
+    );
   }
 
   if (convos.length === 0) {

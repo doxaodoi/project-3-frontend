@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { StatCard } from "@/components/ui/StatCard";
+import { StatCardsSkeleton, Skeleton } from "@/components/ui/Skeleton";
 import { admin as adminApi } from "@/lib/api";
-import { cn } from "@/lib/cn";
 
 const BAR_COLORS = ["#b5451f", "#c8703f", "#2f6d3a", "#6b8f5e", "#a89a84"];
 
@@ -23,7 +23,11 @@ export default function AdminPage() {
   if (loading)
     return (
       <AdminShell>
-        <div className="py-20 text-center text-ink3">Loading stats...</div>
+        <div className="pt-7">
+          <Skeleton className="h-8 w-40" />
+          <StatCardsSkeleton />
+          <Skeleton className="h-48 w-full rounded-xl" />
+        </div>
       </AdminShell>
     );
 

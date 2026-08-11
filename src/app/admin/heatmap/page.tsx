@@ -1,16 +1,37 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { HeatMap, type Hotspot } from "@/components/map/HeatMap";
+import { admin as adminApi, type AdminStats } from "@/lib/api";
+import { cn } from "@/lib/cn";
 
-const HOTSPOTS: Hotspot[] = [
-  { location: "Balme Library", count: 84 },
-  { location: "Bush Canteen", count: 51 },
-  { location: "JQB", count: 33 },
-  { location: "N-Block", count: 22 },
-  { location: "Dept. of Physics", count: 18 },
-  { location: "Night Ward Lodge", count: 14 },
-];
+type Filter = "all" | "lost" | "found";
 
 export default function HeatmapPage() {
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    adminApi
+      .stats()
+      .then(setStats)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const source =
+    filter === "lost"
+      ? stats?.byLocationLost
+      : filter === "found"
+        ? stats?.byLocationFound
+        : stats?.byLocation;
+
+  const hotspots: Hotspot[] = Object.entries(source ?? {}).map(
+    ([location, count]) => ({ location, count: Number(count) }),
+  );
+
   return (
     <AdminShell active="Heatmap">
       <div className="flex flex-col items-start justify-between gap-4 pt-6 sm:flex-row sm:items-end">
@@ -23,13 +44,36 @@ export default function HeatmapPage() {
           </p>
         </div>
         <div className="flex overflow-hidden rounded-[9px] border border-line bg-card text-[13px] font-semibold">
-          <span className="bg-ink px-[15px] py-[9px] text-paper">Lost</span>
-          <span className="px-[15px] py-[9px] text-ink2">Found</span>
+          {(["all", "lost", "found"] as Filter[]).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={cn(
+                "px-[15px] py-[9px] capitalize transition-colors",
+                filter === f
+                  ? "bg-ink text-paper"
+                  : "text-ink2 hover:bg-panel",
+              )}
+            >
+              {f}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className="py-4">
-        <HeatMap hotspots={HOTSPOTS} />
+        {loading ? (
+          <div className="flex h-[440px] items-center justify-center rounded-xl border border-line text-ink3">
+            Loading heatmap...
+          </div>
+        ) : hotspots.length === 0 ? (
+          <div className="flex h-[440px] items-center justify-center rounded-xl border border-line text-ink3">
+            No {filter === "all" ? "" : filter + " "}items with a location yet.
+          </div>
+        ) : (
+          <HeatMap hotspots={hotspots} />
+        )}
       </div>
     </AdminShell>
   );

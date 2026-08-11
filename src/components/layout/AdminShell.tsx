@@ -1,13 +1,17 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, type ReactNode } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Logo } from "@/components/ui/Logo";
+import { useAuth } from "@/lib/auth-context";
 import { cn } from "@/lib/cn";
 
 const tabs: { label: string; href?: string }[] = [
   { label: "Overview", href: "/admin" },
   { label: "Heatmap", href: "/admin/heatmap" },
-  { label: "Moderation" },
-  { label: "Users" },
+  { label: "Moderation", href: "/admin/moderation" },
+  { label: "Users", href: "/admin/users" },
 ];
 
 export function AdminShell({
@@ -17,6 +21,21 @@ export function AdminShell({
   children: ReactNode;
   active?: string;
 }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  // Guard: only admins may view; everyone else is bounced.
+  useEffect(() => {
+    if (loading) return;
+    if (!user) {
+      router.replace("/login");
+    } else if (user.role !== "ADMIN") {
+      router.replace("/");
+    }
+  }, [loading, user, router]);
+
+  if (loading || !user || user.role !== "ADMIN") return null;
+
   return (
     <div className="min-h-full">
       <header className="border-b border-line bg-paper">

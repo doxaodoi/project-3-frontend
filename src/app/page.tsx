@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/Button";
 import { BoardClient } from "@/components/board/BoardClient";
+import { BoardGridSkeleton } from "@/components/ui/Skeleton";
 import { items as itemsApi } from "@/lib/api";
 import { mapItem } from "@/lib/mappers";
 import type { Item } from "@/lib/types";
@@ -45,7 +46,7 @@ export default function Home() {
       </section>
 
       {loading ? (
-        <div className="py-20 text-center text-ink3">Loading items...</div>
+        <BoardGridSkeleton />
       ) : (
         <BoardClient items={list} />
       )}
