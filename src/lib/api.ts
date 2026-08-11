@@ -8,7 +8,8 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:808
 /** Turn a relative backend path (e.g. /uploads/abc.jpg) into a full URL. */
 export function assetUrl(path: string | undefined | null): string | undefined {
   if (!path) return undefined;
-  if (path.startsWith("http")) return path; // already absolute
+  // Absolute URLs (Cloudinary) and inline data URIs are used as-is.
+  if (path.startsWith("http") || path.startsWith("data:")) return path;
   return `${API_BASE}${path}`;
 }
 
@@ -352,7 +353,7 @@ export const ai = {
     ),
 };
 
-/* ---------- File uploads (Cloudinary) ---------- */
+/* ---------- File uploads ---------- */
 
 const CLOUDINARY_CLOUD = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const CLOUDINARY_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
@@ -360,29 +361,67 @@ const CLOUDINARY_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 /** Whether Cloudinary is configured (both env vars present). */
 export const cloudinaryReady = Boolean(CLOUDINARY_CLOUD && CLOUDINARY_PRESET);
 
+/**
+ * Downscale + compress an image entirely in the browser and return a JPEG
+ * data URI. Used as a zero-config fallback when Cloudinary isn't set up, so
+ * photos always work. Caps the longest edge at 1000px and targets ~0.72
+ * quality — typically 80–200KB, which fits comfortably in the TEXT column.
+ */
+function compressImage(file: File, maxEdge = 1000, quality = 0.72): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read the image file"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not load the image"));
+      img.onload = () => {
+        const scale = Math.min(1, maxEdge / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return reject(new Error("Canvas not supported"));
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export const uploads = {
   /**
-   * Upload a photo directly to Cloudinary (unsigned) and return its secure URL.
-   * Works on any host — Render's free tier has no persistent disk, so we don't
-   * store files on the backend. Requires NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and
-   * NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET (an unsigned preset) to be set.
+   * Upload a photo and return a URL to store on the item.
+   * Prefers Cloudinary (unsigned) when NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and
+   * NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET are set; otherwise falls back to an
+   * in-browser compressed data URI so photos work with zero configuration.
+   * (Render's free tier has no persistent disk, so we never store files on
+   * the backend.)
    */
   photo: async (file: File): Promise<{ url: string }> => {
-    if (!CLOUDINARY_CLOUD || !CLOUDINARY_PRESET) {
-      throw new ApiError(0, "Cloudinary is not configured");
+    if (CLOUDINARY_CLOUD && CLOUDINARY_PRESET) {
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("upload_preset", CLOUDINARY_PRESET);
+        const res = await fetch(
+          `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
+          { method: "POST", body: fd },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          return { url: data.secure_url as string };
+        }
+        // Cloudinary rejected the upload — fall through to local compression.
+      } catch {
+        // Network error reaching Cloudinary — fall through.
+      }
     }
-    const fd = new FormData();
-    fd.append("file", file);
-    fd.append("upload_preset", CLOUDINARY_PRESET);
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`,
-      { method: "POST", body: fd },
-    );
-    if (!res.ok) {
-      throw new ApiError(res.status, "Photo upload failed");
-    }
-    const data = await res.json();
-    return { url: data.secure_url as string };
+    const dataUrl = await compressImage(file);
+    return { url: dataUrl };
   },
 };
 
