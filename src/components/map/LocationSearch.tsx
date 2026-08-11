@@ -1,21 +1,33 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MAPBOX_TOKEN, CAMPUS_CENTER } from "@/lib/geo";
+import { MAPBOX_TOKEN, CAMPUS_CENTER, LOCATION_COORDS } from "@/lib/geo";
 import type { LngLat } from "@/lib/geo";
 import { MapPin } from "@/components/ui/Icon";
 
 interface Suggestion {
   id: string;
-  place_name: string;
-  center: [number, number]; // [lng, lat]
+  name: string;
+  detail?: string;
+  coords: LngLat;
+  source: "campus" | "mapbox";
 }
 
+/** Known campus locations — always available, no API call needed. */
+const CAMPUS_LOCATIONS: Suggestion[] = Object.entries(LOCATION_COORDS)
+  // Remove duplicates (e.g. "JQB" and "JQB (Dept. of CS)" point to the same coords)
+  .filter(([name]) => !name.includes("("))
+  .map(([name, coords]) => ({
+    id: `campus-${name}`,
+    name,
+    detail: "University of Ghana",
+    coords,
+    source: "campus" as const,
+  }));
+
 /**
- * Mapbox-powered location search input.
- * Types a place name → geocodes via Mapbox → returns exact coordinates.
- * Biased toward UG Legon campus via proximity.
- * Falls back to plain text input when no Mapbox token is set.
+ * Hybrid location search: local campus locations first (instant),
+ * then Mapbox geocoding for broader results.
  */
 export function LocationSearch({
   value,
@@ -51,22 +63,24 @@ export function LocationSearch({
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const geocode = useCallback(async (q: string) => {
-    if (!MAPBOX_TOKEN) return; // no token — plain text only
-    if (q.length < 2) {
-      setSuggestions([]);
-      return;
-    }
+  /** Filter local campus locations by typed query. */
+  function filterCampus(q: string): Suggestion[] {
+    const lower = q.toLowerCase();
+    return CAMPUS_LOCATIONS.filter((s) =>
+      s.name.toLowerCase().includes(lower),
+    );
+  }
 
-    setLoading(true);
+  /** Call Mapbox Geocoding API for broader results. */
+  const geocodeMapbox = useCallback(async (q: string): Promise<Suggestion[]> => {
+    if (!MAPBOX_TOKEN || q.length < 3) return [];
+
     try {
-      // Bias results toward UG Legon campus via proximity only (no bbox —
-      // bbox filters out POIs that Mapbox hasn't indexed at that exact area)
       const params = new URLSearchParams({
         access_token: MAPBOX_TOKEN,
         proximity: `${CAMPUS_CENTER.lng},${CAMPUS_CENTER.lat}`,
         country: "GH",
-        limit: "6",
+        limit: "4",
         language: "en",
       });
 
@@ -74,35 +88,62 @@ export function LocationSearch({
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?${params}`,
       );
 
-      if (!res.ok) throw new Error("Geocoding request failed");
+      if (!res.ok) return [];
 
       const data = await res.json();
-      const features: Suggestion[] = (data.features ?? []).map(
+      return (data.features ?? []).map(
         (f: Record<string, unknown>) => ({
           id: f.id as string,
-          place_name: f.place_name as string,
-          center: f.center as [number, number],
+          name: (f.place_name as string).split(",")[0].trim(),
+          detail: (f.place_name as string).split(",").slice(1).join(",").trim(),
+          coords: {
+            lng: (f.center as [number, number])[0],
+            lat: (f.center as [number, number])[1],
+          },
+          source: "mapbox" as const,
         }),
       );
-
-      setSuggestions(features);
-      setOpen(features.length > 0);
     } catch {
-      setSuggestions([]);
+      return [];
     }
-    setLoading(false);
   }, []);
+
+  async function search(q: string) {
+    if (q.length < 1) {
+      setSuggestions([]);
+      setOpen(false);
+      return;
+    }
+
+    // Local campus matches appear immediately
+    const local = filterCampus(q);
+    setSuggestions(local);
+    if (local.length > 0) setOpen(true);
+
+    // Also try Mapbox for broader results (if query long enough)
+    if (q.length >= 3) {
+      setLoading(true);
+      const remote = await geocodeMapbox(q);
+      // Merge: campus first, then Mapbox (skip duplicates)
+      const localNames = new Set(local.map((s) => s.name.toLowerCase()));
+      const merged = [
+        ...local,
+        ...remote.filter((r) => !localNames.has(r.name.toLowerCase())),
+      ];
+      setSuggestions(merged);
+      if (merged.length > 0) setOpen(true);
+      setLoading(false);
+    }
+  }
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;
     setQuery(v);
-    // Commit the typed value immediately as plain text (no coords)
-    onSelect(v, CAMPUS_CENTER);
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
-    if (v.trim().length >= 2) {
-      debounceRef.current = setTimeout(() => geocode(v.trim()), 350);
+    if (v.trim().length >= 1) {
+      debounceRef.current = setTimeout(() => search(v.trim()), 200);
     } else {
       setSuggestions([]);
       setOpen(false);
@@ -110,11 +151,9 @@ export function LocationSearch({
   }
 
   function handleSelect(s: Suggestion) {
-    // Use the short name (first part before the comma) as the stored location name
-    const shortName = s.place_name.split(",")[0].trim();
-    setQuery(shortName);
+    setQuery(s.name);
     setOpen(false);
-    onSelect(shortName, { lng: s.center[0], lat: s.center[1] });
+    onSelect(s.name, s.coords);
   }
 
   return (
@@ -133,6 +172,7 @@ export function LocationSearch({
           onChange={handleChange}
           onFocus={() => {
             if (suggestions.length > 0) setOpen(true);
+            else if (query.trim().length >= 1) search(query.trim());
           }}
           placeholder={placeholder ?? "Type a place name..."}
           autoComplete="off"
@@ -146,7 +186,7 @@ export function LocationSearch({
       </div>
 
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-30 mt-1 max-h-[220px] w-full overflow-y-auto rounded-[9px] border border-line bg-paper shadow-lg">
+        <ul className="absolute z-30 mt-1 max-h-[260px] w-full overflow-y-auto rounded-[9px] border border-line bg-paper shadow-lg">
           {suggestions.map((s) => (
             <li key={s.id}>
               <button
@@ -154,18 +194,22 @@ export function LocationSearch({
                 onClick={() => handleSelect(s)}
                 className="flex w-full items-start gap-2.5 px-3.5 py-2.5 text-left text-sm hover:bg-panel"
               >
-                <MapPin size={14} className="mt-0.5 flex-none text-rust" />
-                <span className="text-ink">{s.place_name}</span>
+                <MapPin size={14} className={`mt-0.5 flex-none ${s.source === "campus" ? "text-rust" : "text-ink3"}`} />
+                <span className="flex-1">
+                  <span className="text-ink">{s.name}</span>
+                  {s.detail && (
+                    <span className="ml-1.5 text-[11.5px] text-ink3">{s.detail}</span>
+                  )}
+                  {s.source === "campus" && (
+                    <span className="ml-1.5 rounded bg-rusttint px-1.5 py-0.5 text-[10px] font-semibold text-rust">
+                      Campus
+                    </span>
+                  )}
+                </span>
               </button>
             </li>
           ))}
         </ul>
-      )}
-
-      {!MAPBOX_TOKEN && (
-        <p className="mt-1 text-[11.5px] text-ink3">
-          Type the location name — pin it on the map below for precision.
-        </p>
       )}
     </div>
   );
