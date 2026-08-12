@@ -293,6 +293,10 @@ export const conversations = {
 
   markRead: (msgId: number) =>
     request<void>(`/api/conversations/messages/${msgId}/read`, { method: "PATCH" }),
+
+  /** Mark the whole conversation read (clears unread dot + message notifications). */
+  markConversationRead: (convId: number) =>
+    request<void>(`/api/conversations/${convId}/read`, { method: "PATCH" }),
 };
 
 /* ---------- Notifications ---------- */
