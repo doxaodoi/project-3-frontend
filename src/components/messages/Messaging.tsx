@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   conversations as convApi,
+  getAccessToken,
+  WS_BASE,
   type ConversationDTO,
   type MessageDTO,
 } from "@/lib/api";
@@ -72,14 +74,93 @@ export function Messaging() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Poll the conversation list (unread counts + previews) every 8s.
-  // Only runs while the messages page is mounted; stops on navigate-away.
+  // Real-time delivery over WebSocket. The socket pushes new messages instantly;
+  // the polling below is only a fallback for a dropped/misbehaving socket.
   useEffect(() => {
-    const t = setInterval(() => refreshList(), 8000);
+    if (!user) return;
+    let ws: WebSocket | null = null;
+    let closed = false;
+    let authFailed = false;
+    let retries = 0;
+    let pingTimer: ReturnType<typeof setInterval> | undefined;
+
+    const connect = () => {
+      const token = getAccessToken();
+      if (!token || closed) return;
+      try {
+        ws = new WebSocket(`${WS_BASE}/ws`);
+      } catch {
+        return;
+      }
+
+      ws.onopen = () => {
+        retries = 0;
+        ws?.send(JSON.stringify({ type: "auth", token }));
+        pingTimer = setInterval(() => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 25000);
+      };
+
+      ws.onmessage = (ev) => {
+        let data: { type?: string; conversationId?: number; message?: MessageDTO };
+        try {
+          data = JSON.parse(ev.data);
+        } catch {
+          return;
+        }
+        if (data.type === "auth-error") {
+          authFailed = true;
+          return;
+        }
+        if (data.type === "message" && data.message) {
+          const msg = data.message;
+          if (data.conversationId === selectedIdRef.current) {
+            setMessages((prev) =>
+              prev.some((m) => m.id === msg.id) ? prev : [...prev, msg],
+            );
+          }
+          // Keep the list (unread counts, previews, ordering) fresh
+          refreshList();
+        }
+      };
+
+      ws.onclose = () => {
+        if (pingTimer) clearInterval(pingTimer);
+        if (closed || authFailed) return;
+        retries += 1;
+        setTimeout(connect, Math.min(1000 * retries, 10000));
+      };
+
+      ws.onerror = () => {
+        try {
+          ws?.close();
+        } catch {
+          /* ignore */
+        }
+      };
+    };
+
+    connect();
+    return () => {
+      closed = true;
+      if (pingTimer) clearInterval(pingTimer);
+      try {
+        ws?.close();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [user, refreshList]);
+
+  // Fallback poll of the conversation list (in case the socket is down).
+  useEffect(() => {
+    const t = setInterval(() => refreshList(), 15000);
     return () => clearInterval(t);
   }, [refreshList]);
 
-  // Load + poll messages for the selected conversation every 4s
+  // Load messages when the conversation changes; slow fallback re-sync every 15s.
   useEffect(() => {
     if (!selectedId) return;
     let cancelled = false;
@@ -98,7 +179,7 @@ export function Messaging() {
     };
 
     load(true);
-    const t = setInterval(() => load(false), 4000);
+    const t = setInterval(() => load(false), 15000);
     return () => {
       cancelled = true;
       clearInterval(t);

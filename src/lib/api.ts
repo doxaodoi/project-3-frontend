@@ -5,6 +5,9 @@
 
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
+/** WebSocket origin derived from the API base (http→ws, https→wss). */
+export const WS_BASE = API_BASE.replace(/^http/, "ws");
+
 /** Turn a relative backend path (e.g. /uploads/abc.jpg) into a full URL. */
 export function assetUrl(path: string | undefined | null): string | undefined {
   if (!path) return undefined;
