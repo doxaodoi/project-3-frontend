@@ -72,11 +72,10 @@ export function Messaging() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Poll the conversation list (unread counts + previews) every 8s
+  // Poll the conversation list (unread counts + previews) every 8s.
+  // Only runs while the messages page is mounted; stops on navigate-away.
   useEffect(() => {
-    const t = setInterval(() => {
-      if (document.visibilityState === "visible") refreshList();
-    }, 8000);
+    const t = setInterval(() => refreshList(), 8000);
     return () => clearInterval(t);
   }, [refreshList]);
 
@@ -99,9 +98,7 @@ export function Messaging() {
     };
 
     load(true);
-    const t = setInterval(() => {
-      if (document.visibilityState === "visible") load(false);
-    }, 4000);
+    const t = setInterval(() => load(false), 4000);
     return () => {
       cancelled = true;
       clearInterval(t);
