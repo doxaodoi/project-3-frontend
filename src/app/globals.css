@@ -33,9 +33,9 @@
 }
 
 @theme inline {
-  --font-sans: var(--font-archivo);
-  --font-serif: var(--font-newsreader);
-  --font-mono: var(--font-plex-mono);
+  --font-sans: "Archivo", system-ui, -apple-system, sans-serif;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", "Consolas", monospace;
 }
 
 body {
