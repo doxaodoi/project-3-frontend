@@ -61,6 +61,7 @@ export function EditReportForm({ item }: { item: ItemDTO }) {
     setError("");
     try {
       await itemsApi.update(Number(item.id), {
+        type: item.type, // required by validation; the item's type is not changed
         title: title.trim(),
         description: description.trim(),
         categoryId,
