@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { items as itemsApi, matches as matchesApi, claims as claimsApi, assetUrl, type ItemDTO, type MatchDTO, type ClaimDTO } from "@/lib/api";
 import { mapItem } from "@/lib/mappers";
@@ -9,6 +9,7 @@ import { Gallery } from "@/components/item/Gallery";
 import { ItemActions } from "@/components/item/ItemActions";
 import { ClaimsReview } from "@/components/item/ClaimsReview";
 import { AppShell } from "@/components/layout/AppShell";
+import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Sparkle, MapPin, ChatBubble } from "@/components/ui/Icon";
 import { useAuth } from "@/lib/auth-context";
@@ -16,6 +17,7 @@ import type { Item } from "@/lib/types";
 
 export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { user } = useAuth();
   const [dto, setDto] = useState<ItemDTO | null>(null);
   const [item, setItem] = useState<Item | null>(null);
@@ -23,6 +25,21 @@ export default function ItemDetailPage() {
   const [myClaims, setMyClaims] = useState<ClaimDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  async function handleDelete() {
+    setDeleting(true);
+    setDeleteError("");
+    try {
+      await itemsApi.delete(Number(id));
+      router.push("/my-reports");
+    } catch (err: unknown) {
+      setDeleteError(err instanceof Error ? err.message : "Couldn't delete this report.");
+      setDeleting(false);
+    }
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -275,20 +292,72 @@ export default function ItemDetailPage() {
 
           {isOwner && (
             <>
-              <div className="rounded-xl border border-line2 bg-panel p-4 text-center text-[13px] text-ink3">
-                This is your report.{" "}
-                <Link
-                  href="/my-reports"
-                  className="font-semibold text-rust hover:text-rustdark"
-                >
-                  Manage it
-                </Link>
+              <div className="rounded-xl border border-line2 bg-panel p-4">
+                <div className="mb-3 text-center text-[13px] text-ink3">
+                  This is your report.
+                </div>
+                <div className="flex gap-2.5">
+                  <Link href={`/items/${id}/edit`} className="flex-1">
+                    <Button variant="secondary" className="w-full">
+                      Edit
+                    </Button>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="flex-1 rounded-[9px] border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 hover:bg-red-100"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
               <ClaimsReview itemId={Number(id)} />
             </>
           )}
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/50 p-4 backdrop-blur-[1.5px]"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Delete report"
+          onClick={() => !deleting && setConfirmDelete(false)}
+        >
+          <div
+            className="w-full max-w-[420px] rounded-[14px] bg-paper p-6 shadow-[0_30px_70px_-20px_rgba(0,0,0,0.5)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-serif text-xl font-semibold">Delete this report?</h3>
+            <p className="mt-2 text-[13.5px] leading-relaxed text-ink3">
+              &ldquo;{item.title}&rdquo; will be permanently removed, along with any
+              claims, matches and conversations tied to it. This can&apos;t be undone.
+            </p>
+            {deleteError && (
+              <div className="mt-3 text-[12.5px] text-rust">{deleteError}</div>
+            )}
+            <div className="mt-5 flex gap-3">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDelete}
+                className="flex-1 rounded-[9px] bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {deleting ? "Deleting..." : "Delete report"}
+              </button>
+              <Button
+                variant="secondary"
+                disabled={deleting}
+                onClick={() => setConfirmDelete(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
     </AppShell>
   );
