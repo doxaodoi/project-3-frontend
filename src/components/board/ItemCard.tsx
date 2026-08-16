@@ -44,6 +44,7 @@ export function ItemCard({ item }: { item: Item }) {
             </span>
             <span className="text-[11.5px] font-semibold text-rust">
               {item.smartMatches} smart match{item.smartMatches > 1 ? "es" : ""}
+              {item.smartMatchScore ? ` · ${item.smartMatchScore}%` : ""}
             </span>
           </div>
         ) : item.aiDescribed ? (

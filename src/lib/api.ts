@@ -153,6 +153,7 @@ export interface ItemDTO {
   photos: PhotoDTO[];
   reporter: UserDTO;
   matchCount: number;
+  topMatchScore: number | null;
   createdAt: string;
   updatedAt: string;
 }

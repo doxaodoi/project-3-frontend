@@ -23,6 +23,8 @@ export interface Item {
   aiDescribed?: boolean;
   /** Number of suggested smart matches (LOST items). */
   smartMatches?: number;
+  /** Best match score as a percentage (0-100), if any. */
+  smartMatchScore?: number;
   status: ItemStatus;
   /** Reporter label, e.g. "a verified finder". */
   postedBy: string;

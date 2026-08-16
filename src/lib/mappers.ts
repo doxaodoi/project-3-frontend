@@ -75,6 +75,7 @@ export function mapItem(dto: ItemDTO): Item {
       : gradient(dto.category),
     aiDescribed: dto.isAiDescribed ?? false,
     smartMatches: dto.matchCount > 0 ? dto.matchCount : undefined,
+    smartMatchScore: dto.topMatchScore ?? undefined,
     status: dto.status as ItemStatus,
     postedBy: dto.reporter?.fullName ?? "a verified finder",
     // Carry along the raw DTO for pages that need extra fields
